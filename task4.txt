@@ -1,0 +1,53 @@
+.include "defs.h"
+
+.section .bss
+n: .byte 0
+
+.section .data
+newline: .byte '\n'
+.global _start
+
+_start:
+	movq $5, %r9	/*nfork==5*/
+fork:
+     movq $SYS_FORK, %rax
+    	syscall
+    	movq %rax, %r13
+
+    	cmpq $0, %r13     	/*if pid != 0 go to parent*/
+    	jne parent
+
+child:
+    	leaq 0x30(%r9), %r11	/*1+0x30 = '1'*/
+    	movq %r11, n
+
+    	/*Writing numbers*/
+    	movq $SYS_WRITE, %rax
+    	movq $STDOUT, %rdi
+    	movq $n, %rsi
+    	movq $1, %rdx
+    	syscall
+
+    	decq %r9
+   	 
+    	cmpq $0, %r9     	/*if(nforks == 0) goto end*/
+    	je end
+
+    	jmp fork
+
+parent:
+    	movq $SYS_WAIT4, %rax
+    	movq %r13, %rdi
+    	movq $0, %rsi
+    	movq $0, %rdx
+    	movq $0, %r13
+    	syscall
+end:
+	movq $SYS_WRITE, %rax
+    	movq $STDOUT, %rdi
+    	movq $1, %rdx
+	movq $newline, %rsi
+	syscall		//*write on newline*/
+    	movq $SYS_EXIT, %rax
+    	movq $0, %rdi
+    	syscall		/*exit*/
